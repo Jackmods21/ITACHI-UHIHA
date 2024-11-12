@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Income Result Prediction</title>
+<style>
+    /* Basic Styling */
+    body {
+        font-family: Arial, sans-serif;
+        background: #0b0c10;
+        color: #c5c6c7;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .container {
+        background: #1f2833;
+        padding: 30px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 600px;
+        text-align: center;
+        border: 3px solid #ff0000; /* Thicker border */
+        animation: redBorderBlink 1s infinite alternate;
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    }
+
+    @keyframes redBorderBlink {
+        0% {
+            border-color: rgba(255, 0, 0, 0.8);
+        }
+        50% {
+            border-color: rgba(255, 50, 50, 1);
+        }
+        100% {
+            border-color: rgba(255, 0, 0, 0.8);
+        }
+    }
+
+    .header {
+        font-size: 2em; /* Increased font size for more prominence */
+        font-weight: bold; /* Thicker text */
+        color: #66fcf1;
+        margin-bottom: 20px;
+        animation: blinkText 1.5s infinite alternate;
+        padding: 5px;
+        border: 4px solid #66fcf1; /* Thick border around the text */
+        border-radius: 5px;
+        text-shadow: 2px 2px 5px rgba(0, 255, 255, 0.6), 0 0 25px rgba(0, 255, 255, 0.5); /* Sharp text shadow */
+    }
+
+    .period, .timer, .result-box {
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 8px;
+        border: 2px solid #45a29e;
+        animation: blinkText 1.5s infinite alternate;
+        font-weight: bold; /* Thicker text */
+        text-shadow: 1px 1px 3px rgba(0, 255, 255, 0.6), 0 0 5px rgba(0, 255, 255, 0.5); /* Sharp text shadow */
+    }
+
+    .timer {
+        color: #ff6347;
+        font-weight: bold;
+    }
+
+    .result-box {
+        display: none;
+        color: #32cd32;
+    }
+
+    .get-result-btn {
+        padding: 10px 20px;
+        background: #66fcf1;
+        border: none;
+        border-radius: 5px;
+        color: #1f2833;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .get-result-btn:hover {
+        background: #45a29e;
+    }
+
+    /* Updated History Table Styling */
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .history-table th, .history-table td {
+        padding: 10px;
+        border: 1px solid #ff0000; /* Red border for table cells */
+        text-align: center;
+        font-weight: bold; /* Thicker text */
+        text-shadow: 1px 1px 3px rgba(0, 255, 255, 0.6), 0 0 5px rgba(0, 255, 255, 0.5); /* Sharp text shadow */
+    }
+
+    .history-table th {
+        background-color: #1f2833;
+        color: #66fcf1;
+    }
+
+    .popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1f2833;
+        color: #66fcf1;
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #ff0000;
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    }
+
+    .popup button {
+        margin-top: 10px;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+
+    /* Blinking Text Animation */
+    @keyframes blinkText {
+        0% {
+            color: #66fcf1;
+        }
+        25% {
+            color: #ff6347;
+        }
+        50% {
+            color: #32cd32;
+        }
+        75% {
+            color: #ff4500;
+        }
+        100% {
+            color: #ff1493;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">ITACHI UCHIHA </div>
+    <div class="period" id="periodNumber">Period Number: 20241106100010001</div>
+    <div class="timer" id="timerDisplay">Timer: 00 : 30</div>
+    <div class="result-box" id="resultBox">Result: -</div>
+    <button class="get-result-btn" id="getResultBtn">GET RESULT</button>
+
+    <div class="popup" id="popup">
+        Please wait for the next period!
+        <button onclick="closePopup()">OK</button>
+    </div>
+
+    <table class="history-table" id="historyTable">
+        <thead>
+            <tr>
+                <th>Period Number</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const predefinedResults = [
+        "SMALL 1 GREEN", "SMALL 3 GREEN", "BIG 7 GREEN", "SMALL 2 RED",
+        "BIG 9 GREEN", "SMALL 4 RED", "BIG 6 RED", "SMALL 0",
+        "BIG 8 RED", "SMALL 3", "BIG 7", "SMALL 4",
+        "BIG 7", "SMALL 1", "BIG 5 GREEN", "SMALL 0",
+        "BIG 9", "SMALL 1", "BIG 8", "SMALL 7",
+        "BIG 7 9", "SMALL 6 8", "BIG 7 6", "SMALL 5 7",
+        "BIG GREEN", "SMALL RED"
+    ];
+
+    const periodResults = {};
+    let currentResultIndex = 0;
+
+    function updatePeriodNumber() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const totalMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+        const periodNumber = `${year}${month}${day}1000${10001 + totalMinutes}`;
+        document.getElementById("periodNumber").textContent = "Period Number: " + periodNumber;
+        return periodNumber;
+    }
+
+    function updateTimer() {
+        const now = new Date();
+        const seconds = now.getUTCSeconds();
+        const remainingSeconds = 60 - seconds;
+        document.getElementById("timerDisplay").textContent = `Timer: 00 : ${String(remainingSeconds).padStart(2, '0')}`;
+    }
+
+    function showPopup() {
+        document.getElementById("popup").style.display = "block";
+    }
+
+    function closePopup() {
+        document.getElementById("popup").style.display = "none";
+    }
+
+    function addHistoryEntry(periodNumber, result) {
+        const historyBody = document.getElementById("historyBody");
+        const newRow = document.createElement("tr");
+        newRow.innerHTML = `<td>${periodNumber}</td><td>${result}</td>`;
+        historyBody.prepend(newRow);
+    }
+
+    document.getElementById("getResultBtn").addEventListener("click", () => {
+        const periodNumber = updatePeriodNumber();
+
+        if (periodResults[periodNumber]) {
+            showPopup();
+        } else {
+            const result = predefinedResults[currentResultIndex];
+            currentResultIndex = (currentResultIndex + 1) % predefinedResults.length;
+
+            periodResults[periodNumber] = result;
+            document.getElementById("resultBox").textContent = "Result: " + result;
+            document.getElementById("resultBox").style.display = "block";
+
+            addHistoryEntry(periodNumber, result);
+        }
+    });
+
+    setInterval(updateTimer, 1000);
+</script>
+
+</body>
+</html>
